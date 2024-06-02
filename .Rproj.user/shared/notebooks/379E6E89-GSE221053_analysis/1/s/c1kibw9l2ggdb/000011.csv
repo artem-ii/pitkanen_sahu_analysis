@@ -1,0 +1,8 @@
+"0","library(devtools)
+"
+"2","Loading required package: usethis
+"
+"2","Registered S3 method overwritten by 'htmlwidgets':
+  method           from         
+  print.htmlwidget tools:rstudio
+"

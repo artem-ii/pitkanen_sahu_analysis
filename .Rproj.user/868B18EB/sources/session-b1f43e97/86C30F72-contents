@@ -1,0 +1,387 @@
+---
+title: "GSE109315_analysis"
+author: "artemii"
+date: "2024-05-07"
+output: html_document
+---
+## Setup
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{text}
+Info from GEO:
+
+Characteristics	strain: C57BL/6Crl
+age on dissection: 8 weeks
+Sex: male
+csds phenotype: control
+
+Treatment protocol	Mice were killed by cervical dislocation between 8 am and 11 am to avoid circadian differences in gene expression, and the order was counterbalanced across experimental conditions.
+
+Growth protocol	Mice (Charles River Laboratories, Sulzfeld, Germany) were housed in groups in a temperature and humidity controlled facility on a 12h light/dark cycle for the acclimatization period. All mice had ad libitum access to food and water throughout the experiment (except for the durations of behavioral tests). Animal procedures were approved by the Regional State Administration Agency for Southern Finland (license numbers ESAVI-3801-041003-2011 and ESAVI/2766/04.10.07/2014) and carried out in accordance to directive 2010/63/EU of the European Parliament and of the Council, and the Finnish Act on the Protection of Animals Used for Science or Educational Purposes (497/2013).
+
+Extracted molecule	total RNA
+
+Extraction protocol	Brain regions were dissected on a sterile chilled petri dish within 7 minutes and tissue was flash-frozen in liquid N2. Total RNA was extracted with TriReagent (Molecular Research Center, Inc.) and RNA integrity was controlled with Bioanalyzer (Agilent). The rRNA was depleted with either Ribo-Zero Gold rRNA Removal Kit (Illumina; mPFC and vHPC) or custom designed Insert dependent adaptor cleavage (InDA-C) primers (BNST).
+
+Sequencing libraries were prepared with Nextera (Illumina; vHPC), ScriptSeq v2 (Epicentre; mPFC), and Ovation Universal RNA-Seq System (NuGEN; BNST) RNA-seq library preparation kits.
+
+```
+
+
+### Loading libraries and data
+```{r}
+
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager")
+}
+library(BiocManager)
+
+BiocManager::install("EnsDb.Mmusculus.v79")
+BiocManager::install("biomaRt")
+
+packages <- c("GEOquery", "edgeR", "limma", "ggVennDiagram", "tidyverse", "rWikiPathways", "pacman", "heatmap3", "openxlsx", "RColorBrewer", "ReactomePA", "ggrepel", "DOSE",
+  "GO.db",
+  "GSEABase",
+  "org.Hs.eg.db",
+  "org.Mm.eg.db",
+  "ensembldb",
+  "clusterProfiler",
+  "dplyr",
+  "tidyr",
+  "stringr",
+  "ggplot2",
+  "stringr",
+  "RColorBrewer",
+  "rWikiPathways",
+  "RCy3", "pacman")
+
+for (pkg in packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    BiocManager::install(pkg)
+  }
+}
+library(pacman)
+load.libs <- c("GEOquery", "edgeR", "limma", "ggVennDiagram", "tidyverse",
+               "rWikiPathways", "pacman", "heatmap3", "openxlsx",
+               "RColorBrewer", "ReactomePA", "ggrepel",
+               "DOSE",
+               "GO.db",
+               "GSEABase",
+               "org.Hs.eg.db",
+               "EnsDb.Mmusculus.v79",
+               "clusterProfiler",
+               "dplyr",
+               "tidyr",
+               "ggplot2",
+               "stringr",
+               "RColorBrewer",
+               "rWikiPathways",
+               "RCy3")
+p_load(load.libs, character.only = TRUE)
+
+```
+
+### Root directory
+
+```{r setup}
+ROOT_DIR="/Users/artemii/obrain_lab/projects/dreadd_obesity/data"
+knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_chunk$set(
+    # This should allow Rmarkdown to locate the data
+    root.dir = rprojroot::find_rstudio_root_file()
+)
+
+knitr::opts_knit$set(root.dir = ROOT_DIR)
+```
+
+## Read sample data from GEO
+
+```{r}
+
+gse <- getGEO("GSE109315")
+
+# Load also data from SRA to get lib sizes (spots)
+# those were retrieved using get_spots_from_sra.sh
+
+sra_data <- read.csv("scripts/config/SraRunTable.txt", sep = "\t")
+
+# gse109315 <- getGEO('GSE109315',GSEMatrix=TRUE)
+
+# exprs(gse109315[[2]])
+
+```
+
+## Generate targets
+
+```{r}
+
+lib_names <- c(
+  gse[["GSE109315-GPL19057_series_matrix.txt.gz"]]@phenoData@data[["title"]],
+  gse[["GSE109315-GPL13112_series_matrix.txt.gz"]]@phenoData@data[["title"]]
+  )
+
+phenotype <- c(
+  gse[["GSE109315-GPL19057_series_matrix.txt.gz"]]@phenoData@data[["csds phenotype:ch1"]],
+  gse[["GSE109315-GPL13112_series_matrix.txt.gz"]]@phenoData@data[["csds phenotype:ch1"]]
+  )
+
+tissue <- c(
+  gse[["GSE109315-GPL19057_series_matrix.txt.gz"]]@phenoData@data[["source_name_ch1"]],
+  gse[["GSE109315-GPL13112_series_matrix.txt.gz"]]@phenoData@data[["source_name_ch1"]]
+)
+
+mouse_strain <- c(
+  gse[["GSE109315-GPL19057_series_matrix.txt.gz"]]@phenoData@data[["strain:ch1"]],
+  gse[["GSE109315-GPL13112_series_matrix.txt.gz"]]@phenoData@data[["strain:ch1"]]
+  )
+
+geo_accession <- c(
+  gse[["GSE109315-GPL19057_series_matrix.txt.gz"]]@phenoData@data[["geo_accession"]],
+  gse[["GSE109315-GPL13112_series_matrix.txt.gz"]]@phenoData@data[["geo_accession"]]
+)
+
+
+targets <- data.frame(lib_names = lib_names,
+                      sample_name = geo_accession,
+                      phenotype = phenotype,
+                      tissue = tissue,
+                      mouse_strain = mouse_strain)
+
+targets <- inner_join(targets, sra_data, by = "sample_name")
+targets$mouse_strain <- gsub("/", "", targets$mouse_strain)
+
+Group <- factor(paste(targets$phenotype, targets$mouse_strain, sep="."))
+targets <- cbind(targets,Group=Group)
+```
+
+## Read local logCPM data
+
+```{r}
+logcpm_mpfc <- read.csv("data/GSE109315_mPFC_counts_logCPM.txt", sep = "\t")
+#cpm_mpfc <- round(2^(logcpm_mpfc))
+
+cpm_bnst <- read.csv("data/GSE109315_BNST_counts_logCPM.txt", sep = "\t")
+#logcpm_bnst <- 2^(logcpm_bnst)
+# It seems that BNST (done using MiSeq is not normalized log-ed or filtered). Other tissues seem to be normalized filtered and logged.
+
+
+logcpm_vhpc <- read.csv("data/GSE109315_vHPC_counts_logCPM.txt", sep = "\t")
+#cpm_vhpc <- round(2^(logcpm_vhpc))
+
+# Counts here seem to be filtered and normalized, number of transcripts is
+# different. So I will just use these dataframes for further comparisons.
+# To compare across tissues, I will later keep only ubiquitous transcripts.
+
+
+
+```
+
+## Get raw count estimates
+```{r}
+# Fnction to transform to kind of raw counts based on spots from SRA
+
+get_raw_count_estimate <- function(logcpm_data, targets, unlog = TRUE){
+  if (unlog == TRUE) {
+    cpm_data <- 2^(logcpm_data)
+  } else {
+      cpm_data <- logcpm_data
+  }
+  for (lib in targets$lib_names){
+    lib_short <- strsplit(lib, "_")[[1]][1]
+    if (lib_short %in% colnames(cpm_data)){
+      cpm_data[, lib_short] <-
+        round(cpm_data[, lib_short] / 1000000 * targets[targets$lib_names == lib,]$spots)
+      }
+  }
+  return(cpm_data)
+}
+
+#cpm_test <- get_raw_count_estimate(logcpm_mpfc, targets)
+
+```
+
+```{r}
+cpm_bnst <- get_raw_count_estimate(cpm_bnst, targets, unlog = F)
+cpm_mpfc <- get_raw_count_estimate(logcpm_mpfc, targets)
+cpm_vhpc <- get_raw_count_estimate(logcpm_vhpc, targets)
+```
+
+
+## Annotation
+
+### Functions
+
+```{r}
+
+replace_sample_names <- function(sample_name, vhpc = F){
+  if(vhpc == F){
+    readable_names <-
+    c(
+      gse[["GSE109315-GPL19057_series_matrix.txt.gz"]]@phenoData@data[["title"]]
+    )
+  } else {
+    readable_names <-
+    c(
+      gse[["GSE109315-GPL13112_series_matrix.txt.gz"]]@phenoData@data[["title"]]
+    )
+  }
+  
+  keep <- str_detect(readable_names, paste0(sample_name, "_"))
+  return(readable_names[keep])
+}
+
+make_colnames_readable <- function(logcpm_df, vhpc = F){
+  
+  if(vhpc == F){
+    readable_colnames <- sapply(colnames(logcpm_df), replace_sample_names)
+    names(logcpm_df) <- readable_colnames
+  } else {
+    readable_colnames <- sapply(colnames(logcpm_df), replace_sample_names, T)
+    names(logcpm_df) <- readable_colnames
+  }
+  return(logcpm_df)
+}
+
+annotate_logcpm <- function(logcpm_df){
+  
+  ensembl_ids <- row.names(logcpm_df)
+  
+  gene_symbols <- ensembldb::select(EnsDb.Mmusculus.v79,
+                                    keys = ensembl_ids,
+                                    keytype = "GENEID",
+                                    columns = c("SYMBOL", "GENEID")
+                                  )
+  
+  logcpm_df <- inner_join(rownames_to_column(logcpm_df),
+                          gene_symbols,
+                          by = c("rowname" = "GENEID")
+                          )
+  
+  return(logcpm_df)
+}
+```
+
+### Get readable sample mames
+```{r}
+
+cpm_mpfc <- make_colnames_readable(cpm_mpfc)
+cpm_bnst <- make_colnames_readable(cpm_bnst)
+cpm_vhpc <- make_colnames_readable(cpm_vhpc, vhpc = T)
+
+
+```
+
+### Annotate with gene symbols
+```{r}
+# library(biomaRt)
+# ensembl <- useEnsembl(biomart = "genes", dataset = "mmusculus_gene_ensembl")
+
+cpm_mpfc <- annotate_logcpm(cpm_mpfc)
+cpm_bnst <- annotate_logcpm(cpm_bnst)
+cpm_vhpc <- annotate_logcpm(cpm_vhpc)
+
+```
+
+
+## Fit a model
+
+```{r}
+targets_mpfc <- dplyr::filter(targets,
+                              (tissue == "medial prefrontal cortex") & 
+                                (mouse_strain == "C57BL6Crl"))
+design <- model.matrix(~ 0 + targets_mpfc$phenotype)
+colnames(design) <- c("control", "resilient", "susceptible")
+
+
+# targets_mpfc <- 
+#   targets_mpfc %>%
+#   mutate(group = paste0(phenotype, mouse_strain))
+
+# contrast.matrix <-
+#   makeContrasts(resilientC57BL6Crl-susceptibleC57BL6Crl,
+#                 levels = targets_mpfc$group)
+
+# Create DGEList from counts
+# Of course not optimal to take normalized values
+# I don't filter because everything is filtered already
+# Here I will transform to kind of raw counts using spots values from SRA
+
+b6_names <- targets_mpfc$lib_names
+keep <- c(TRUE, colnames(cpm_mpfc)[seq(2,33)] %in% b6_names, TRUE)
+cpm_mpfc_b6 <- cpm_mpfc[keep]
+
+y <- DGEList(counts = cpm_mpfc_b6,
+             group = targets_mpfc$phenotype,
+             annotation.columns = c(1, 20))
+
+design <- model.matrix(~0+targets_mpfc$phenotype)
+colnames(design) <- levels(targets_mpfc$phenotype)
+
+
+eset.disp <- estimateDisp(y, design)
+fit <- glmQLFit(eset.disp, design)
+```
+
+
+```{r}
+targets_mpfc$phenotype <- as.factor(targets_mpfc$phenotype)
+contrast.matrix <-
+  makeContrasts(susceptible-control,
+                resilient-control,
+                susceptible-resilient,
+                levels = targets_mpfc$phenotype)
+qlf.susceptible_vs_control <- glmQLFTest(fit, contrast = contrast.matrix[,1])
+qlf.resilient_vs_control <- glmQLFTest(fit, contrast = contrast.matrix[,2])
+qlf.susceptible_vs_resilient <- glmQLFTest(fit, contrast = contrast.matrix[,3])
+
+de_genes_b6_susceptible_vs_control <- topTags(qlf.susceptible_vs_control,
+                                               n = 5000)[[1]]
+de_genes_b6_resilient_vs_control <- topTags(qlf.resilient_vs_control,
+                                               n = 5000)[[1]]
+de_genes_b6_susceptible_vs_resilient <- topTags(qlf.susceptible_vs_resilient,
+                                               n = 5000)[[1]]
+```
+
+## Pathway analysis
+
+```{r}
+go <- goana(qlf.susceptible_vs_control, species="Mm")
+topgo_susceptible_vs_control <- topGO(go, sort="down")
+
+keg <- kegga(qlf.susceptible_vs_control, species="Mm")
+topkegg_susceptible_vs_control <- topKEGG(keg, sort="up")
+
+go <- goana(qlf.resilient_vs_control, species="Mm")
+topgo_resilient_vs_control <- topGO(go, sort="down")
+
+keg <- kegga(qlf.resilient_vs_control, species="Mm")
+topkegg_resilient_vs_control <- topKEGG(keg, sort="up")
+
+```
+
+
+## Visualization
+
+## Exploratory visualization
+
+```{r}
+plotMDS(logcpm_mpfc[2:33])
+plotMDS(logcpm_bnst[2:29])
+
+```
+
+### Picking colors
+
+```{r}
+brewer.pal.info
+display.brewer.pal(n = 11, name = "RdYlBu")
+```
+
+```{r}
+col.pal.set <- brewer.pal(8,"RdYlBu")
+```
+
+

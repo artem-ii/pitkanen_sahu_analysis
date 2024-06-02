@@ -1,0 +1,50 @@
+---
+title: "Data Analysis for Pitkanen/Sahu project application"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+```{r}
+install.packages("devtools")
+install_github("lamortenera/kfoots")
+install_github("lamortenera/epicseg")
+library(pacman)
+load.libs <- c("GEOquery", "edgeR", "limma", "ggVennDiagram", "tidyverse",
+               "rWikiPathways", "pacman", "heatmap3", "openxlsx",
+               "RColorBrewer", "ReactomePA", "ggrepel",
+               "DOSE",
+               "GO.db",
+               "GSEABase",
+               "org.Hs.eg.db",
+               "EnsDb.Mmusculus.v79",
+               "clusterProfiler",
+               "dplyr",
+               "tidyr",
+               "ggplot2",
+               "stringr",
+               "RColorBrewer",
+               "rWikiPathways",
+               "RCy3",
+               "IRanges",
+               "GenomicRanges",
+               "bamsignals",
+               "edgeR",
+               "devtools")
+p_load(load.libs, character.only = TRUE)
+
+```
+
+
+
+```{r}
+gse <- getGEO("GSE221053")
+```
+
+
+### Test EpiCSeg
+```{r}
+
+```
+
+### Test 
+

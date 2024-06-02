@@ -1,0 +1,148 @@
+"0","install_github(""lamortenera/epicseg"")
+"
+"2","Using GitHub PAT from the git credential store.
+"
+"2","Downloading GitHub repo lamortenera/epicseg@HEAD
+"
+"2","Skipping 5 packages not available: edgeR, bamsignals, GenomicRanges, IRanges, S4Vectors
+"
+"1","[36m──[39m [36mR CMD build[39m [36m─────────────────────────────────────────────────────────────[39m"
+"1",""
+"1","
+"
+"1","  "
+"1","   checking for file ‘/private/var/folders/bf/gw7g3vwn4cl_k752qcmmxhdh0000gn/T/RtmpuqX3RY/remotes2f5017a45b75/lamortenera-epicseg-383b069/DESCRIPTION’ ..."
+"1",""
+"1",""
+"1","  "
+"1","[32m✔[39m  [38;5;247mchecking for file ‘/private/var/folders/bf/gw7g3vwn4cl_k752qcmmxhdh0000gn/T/RtmpuqX3RY/remotes2f5017a45b75/lamortenera-epicseg-383b069/DESCRIPTION’[39m[36m[39m"
+"1",""
+"1","
+"
+"1",""
+"1",""
+"1",""
+"1","  "
+"1","[38;5;247m─[39m[38;5;247m  [39m[38;5;247mpreparing ‘epicseg’:[39m[36m[39m"
+"1",""
+"1","
+"
+"1","[32m✔[39m  [38;5;247mchecking DESCRIPTION meta-information[39m[36m[39m"
+"1",""
+"1","
+"
+"1","[38;5;247m─[39m[38;5;247m  [39m[38;5;247mcleaning src[39m[36m[39m"
+"1",""
+"1","
+"
+"1",""
+"1",""
+"1",""
+"1","  "
+"1","[38;5;247m─[39m[38;5;247m  [39m[38;5;247mchecking for LF line-endings in source and make files and shell scripts[39m[36m[39m"
+"1",""
+"1","
+"
+"1","[38;5;247m─[39m[38;5;247m  [39m[38;5;247mchecking for empty or unneeded directories[39m[36m[39m"
+"1",""
+"1","
+"
+"1","[38;5;247m─[39m[38;5;247m  [39m[38;5;247mbuilding ‘epicseg_1.0.tar.gz’[39m[36m[39m"
+"1",""
+"1","
+"
+"1",""
+"1",""
+"1",""
+"1","  "
+"1","   "
+"1",""
+"1","
+"
+"1",""
+"1",""
+"1",""
+"2","* installing *source* package ‘epicseg’ ...
+"
+"2","** using staged installation
+"
+"2","** libs
+"
+"2","using C++ compiler: ‘Apple clang version 15.0.0 (clang-1500.3.9.4)’
+"
+"2","using C++11
+"
+"2","using SDK: ‘MacOSX14.4.sdk’
+"
+"1","clang++ -arch arm64 -std=gnu++11 -I""/Library/Frameworks/R.framework/Resources/include"" -DNDEBUG  -I'/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/Rcpp/include' -I/opt/R/arm64/include    -fPIC  -falign-functions=64 -Wall -g -O2   -c RcppExports.cpp -o RcppExports.o
+"
+"1","clang++ -arch arm64 -std=gnu++11 -I""/Library/Frameworks/R.framework/Resources/include"" -DNDEBUG  -I'/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/Rcpp/include' -I/opt/R/arm64/include    -fPIC  -falign-functions=64 -Wall -g -O2   -c misc.cpp -o misc.o
+"
+"2","In file included from misc.cpp:4:
+In file included from ./clist.h:2:
+./array.h:277:5: "
+"2","error: no matching function for call to 'dgemm_'
+    F77_CALL(dgemm)(TA, TB, &M, &N, &K, &alpha, A.ptr, &A.nrow, 
+    ^~~~~~~~~~~~~~~
+/Library/Frameworks/R.framework/Resources/include/R_ext/RS.h:77:22: note: expanded from macro 'F77_CALL'
+# define F77_CALL(x)    x ## _
+                        ^~~~~~
+<scratch space>:13:1: note: expanded from here
+dgemm_
+^~~~~~
+"
+"2","/Library/Frameworks/R.framework/Resources/include/R_ext/BLAS.h:222:1"
+"2",": note: candidate function not viable: requires 15 arguments, but 13 were provided
+F77_NAME(dgemm)(const char *transa, const char *transb, const BLAS_INT *m,
+^
+/Library/Frameworks/R.framework/Resources/include/R_ext/RS.h:81:24: note: expanded from macro 'F77_NAME'
+#define F77_NAME(x)    F77_CALL(x)
+                       ^
+/Library/Frameworks/R.framework/Resources/include/R_ext/RS.h:77:22: note: expanded from macro 'F77_CALL'
+# define F77_CALL(x)    x ## _"
+"2","
+                        ^
+<scratch space>:332:1: note: expanded from here
+dgemm_
+^
+"
+"2","In file included from misc.cpp:4"
+"2",":
+In file included from ./clist.h:2:
+./array.h:294:5: error: no matching function for call to 'dgemv_'
+    F77_CALL(dgemv)(T, &A.nrow, &A.ncol, &alpha, A.ptr, &A.nrow, X.ptr, &one, 
+    ^~~~~~~~~~~~~~~
+/Library/Frameworks/R.framework/Resources/include/R_ext/RS.h:77:22: note: expanded from macro 'F77_CALL'
+# define F77_CALL(x)    x ## _
+                        ^~~~~~
+<scratch space>:14:1: note: expanded from here
+"
+"2","dgemv_
+^~~~~~
+/Library/Frameworks/R.framework/Resources/include/R_ext/BLAS.h:122:1: note: candidate function not viable: requires 12 arguments, but 11 were provided
+F77_NAME(dgemv)(const char *trans, const BLAS_INT *m, const BLAS_INT *n,
+^
+/Library/Frameworks/R.framework/Resources/include/R_ext/RS.h:81:24: note: expanded from macro 'F77_NAME'
+#define F77_NAME(x)    F77_CALL(x)
+                       ^
+/Library/Frameworks/R.framework/Resources/include/R_ext/RS.h:77:22: note: expanded from macro 'F77_CALL'
+"
+"2","# define F77_CALL(x)    x ## _
+                        ^
+<scratch space>:317:1: note: expanded from here
+dgemv_
+^
+"
+"2","2 errors generated.
+"
+"2","make: *** [misc.o] Error 1
+"
+"2","ERROR: compilation failed for package ‘epicseg’
+"
+"2","* removing ‘/Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/epicseg’
+"
+"2","Warning in i.p(...) :"
+"2","
+ "
+"2"," installation of package '/var/folders/bf/gw7g3vwn4cl_k752qcmmxhdh0000gn/T//RtmpuqX3RY/file2f5027706a73/epicseg_1.0.tar.gz' had non-zero exit status
+"
